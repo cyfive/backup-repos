@@ -58,6 +58,16 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+#clean backup destination from spaces
+echo $backup_dest
+backup_dest=${backup_dest/[[:blank:]]/}
+echo $backup_dest
+
+if [ -z "$backup_dest" ]; then
+    echo "Empty backup destination not allowed!"
+    exit 1
+fi
+
 if [ ! -d $backup_dest ]; then
     mkdir -p $backup_dest
 fi
@@ -95,5 +105,7 @@ done
 tar -czvf $backup_file $backup_dest
 
 if [ $delete_dest -gt 0 ]; then
-    rm --preserve-root -rf $backup_dest/*
+    if [ -n "$backup_dest" ]; then
+        rm --preserve-root -rf $backup_dest/*
+    fi
 fi
