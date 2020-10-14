@@ -1,1 +1,3 @@
 repo.list
+*.tar.gz
+backup/*

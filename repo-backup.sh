@@ -21,13 +21,20 @@
 function usage() {
     echo
     echo "Usage:"
-    echo "  $0 -l|--list repo.list [-t|--to new-origin]"
+    echo "  $0 -l|--list repo.list [-d |--dest destination] [ -o | --out backup file name] [-r | --rm]"
     echo
     echo " -l | --list file containing repo list for caching"
+    echo " -d |--dest destination directory, default value: backup "
+    echo " -o | --out backup file name, default value: backup-YYYY-MM-DD-HHMMSS.tar.gz"
+    echo " -r | --rm remove destination directory after complete"
 }
 
+backup_dest="./backup"
+backup_date=$(date +%Y-%m-%d-%H%M%S)
+backup_file="backup-$backup_date.tar.gz"
 repo_list=""
 new_hosting=""
+delete_dest=0
 
 while [[ $# -gt 0 ]]; do
     key="$1"
@@ -36,9 +43,24 @@ while [[ $# -gt 0 ]]; do
         shift
         repo_list="$1"
         ;;
+        -d|--dest)
+        shift
+        backup_dest="$1"
+        ;;
+        -o|--out)
+        shift
+        backup_file="$1"
+        ;;
+        -r|--rm)
+        delete_dest=1
+        ;;
     esac
     shift
 done
+
+if [ ! -d $backup_dest ]; then
+    mkdir -p $backup_dest
+fi
 
 if [ -z "$repo_list" ]; then
     echo "Repo list not set!"
@@ -57,13 +79,21 @@ all_repos=$(cat $repo_list)
 for repo_url in $all_repos; do
     repo_name=$(basename $repo_url)
     repo_name=${repo_name/.git/}
-    if [ -d $repo_name ]; then
+    if [ -d "$backup_dest/$repo_name" ]; then
         echo "Repo alredy cloned, pull changes"
-        pushd $repo_name > /dev/null
+        pushd "$backup_dest/$repo_name" > /dev/null
         git pull
         popd > /dev/null
     else
         echo "Cloning repo $repo_url"
+        pushd "$backup_dest" > /dev/null
         git clone $repo_url
+        popd > /dev/null
     fi
 done
+
+tar -czvf $backup_file $backup_dest
+
+if [ $delete_dest -gt 0 ]; then
+    rm --preserve-root -rf $backup_dest/*
+fi
