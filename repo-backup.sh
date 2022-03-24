@@ -59,9 +59,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 #clean backup destination from spaces
-echo $backup_dest
 backup_dest=${backup_dest/[[:blank:]]/}
-echo $backup_dest
 
 if [ -z "$backup_dest" ]; then
     echo "Empty backup destination not allowed!"
@@ -87,18 +85,20 @@ fi
 all_repos=$(cat $repo_list)
 
 for repo_url in $all_repos; do
-    repo_name=$(basename $repo_url)
-    repo_name=${repo_name/.git/}
-    if [ -d "$backup_dest/$repo_name" ]; then
-        echo "Repo alredy cloned, pull changes"
-        pushd "$backup_dest/$repo_name" > /dev/null
-        git pull
-        popd > /dev/null
-    else
-        echo "Cloning repo $repo_url"
-        pushd "$backup_dest" > /dev/null
-        git clone $repo_url
-        popd > /dev/null
+    if [ -n "$repo_url" ]; then
+        repo_name=$(basename $repo_url)
+        repo_name=${repo_name/.git/}
+        if [ -d "$backup_dest/$repo_name" ]; then
+                echo "Repo alredy cloned, pull changes"
+                pushd "$backup_dest/$repo_name" > /dev/null
+                git pull
+                popd > /dev/null
+        else
+                echo "Cloning repo $repo_url"
+                pushd "$backup_dest" > /dev/null
+                git clone $repo_url
+                popd > /dev/null
+        fi
     fi
 done
 
