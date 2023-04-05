@@ -18,6 +18,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>
 
+DEBUG=${DEBUG:-0}
+
+CACHE_DIR=".cache"
+REPO_LIST=""
+SRC_REPO=""
+DST_REPO=""
+
 function usage() {
 	echo
 	echo "Usage:"
@@ -25,13 +32,34 @@ function usage() {
 	echo
 	echo "	-l | --list file containing repo list for mirroring"
 	echo "	-c | --cache cache path, the default path .cache"
+	echo "	-s | --src source repo for once mirror"
+	echo "	-d | --dst destination repo for once mirror"
 	echo
 }
 
-DEBUG=${DEBUG:-0}
+function mirror_repo() {
+	local src_repo=$1
+	local dst_repo=$2
 
-CACHE_DIR=".cache"
-REPO_LIST=""
+	src_repo_path=$(basename ${src_repo})
+	if [[ "${src_repo_path}" != *".git" ]]; then
+		src_repo_path="${src_repo_path}.git"
+	fi
+
+	if [ ${DEBUG} -gt 0 ]; then
+		echo "src_repo_path: ${src_repo_path}"
+	fi
+	
+	echo "Mirroring repo ${src_repo}"
+	pushd "${CACHE_DIR}" > /dev/null
+	git clone --mirror ${src_repo}
+	popd > /dev/null
+	pushd "${CACHE_DIR}/${src_repo_path}" > /dev/null
+	
+	git remote set-url --push origin ${dst_repo}
+	git push --mirror
+	popd > /dev/null
+}
 
 while [[ $# -gt 0 ]]; do
     key="$1"
@@ -43,6 +71,14 @@ while [[ $# -gt 0 ]]; do
         -c|--cache)
         shift
         CACHE_DIR="$1"
+        ;;
+        -s|--src)
+        shift
+        SRC_REPO="$1"
+        ;;
+        -d|--dst)
+        shift
+        DST_REPO="$1"
         ;;
     esac
     shift
@@ -57,46 +93,29 @@ if [ ! -d ${CACHE_DIR} ]; then
     mkdir -p ${CACHE_DIR}
 fi
 
-if [ -z "${REPO_LIST}" ]; then
-    echo "Repo list not set!"
-    usage
-    exit 1
+if [ -z "${REPO_LIST}"] && ([ -z "${SRC_REPO}" ] || [ -z "${DST_REPO}" ]); then
+   	echo "Nothing to mirror!"
+   	usage
+   	exit 1
 fi
 
-if [ ! -f "${REPO_LIST}" ]; then
-    echo "Repo list does not exists!"
-    usage
-    exit 1
+if [ -n "${REPO_LIST}" ] && [ -f "${REPO_LIST}" ]; then
+	while read repo; do
+		if [ -n "${repo}" ]; then
+			repo=${repo/[[:blank:]]/}
+			src_repo=$(echo $repo | cut -d ';' -f 1)
+			dst_repo=$(echo $repo | cut -d ';' -f 2)
+
+			mirror_repo ${src_repo} ${dst_repo}
+		fi
+	done < ${REPO_LIST}
 fi
 
-while read repo; do
-	if [ -n "${repo}" ]; then
-		repo=${repo/[[:blank:]]/}
-		src_repo=$(echo $repo | cut -d ';' -f 1)
-		dst_repo=$(echo $repo | cut -d ';' -f 2)
+if [ -n "${SRC_REPO}" ] && [ -n "${DST_REPO}" ]; then
+	mirror_repo ${SRC_REPO} ${DST_REPO}
+fi
 
-		src_repo_path=$(basename ${src_repo})
-		if [[ "${src_repo_path}" != *".git" ]]; then
-			src_repo_path="${src_repo_path}.git"
-		fi
-
-		if [ ${DEBUG} -gt 0 ]; then
-			echo "src_repo_path: ${src_repo_path}"
-		fi
-		
-		echo "Mirroring repo ${src_repo}"
-		pushd "${CACHE_DIR}" > /dev/null
-		git clone --mirror ${src_repo}
-		popd > /dev/null
-		pushd "${CACHE_DIR}/${src_repo_path}" > /dev/null
-		
-		git remote set-url --push origin ${dst_repo}
-		git push --mirror
-		popd > /dev/null
-	fi
-done < ${REPO_LIST}
-
-if [ -d ${CACHE_DIR} ]; then
+if [ -d "${CACHE_DIR}" ]; then
 	if [ -n "${CACHE_DIR}" ]; then
 		echo "Cleaning cache directory..."
 		rm --preserve-root -rf ${CACHE_DIR}
