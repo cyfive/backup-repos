@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Backup (or sync) repos to local from cloug git services
+# Backup (or sync) repos to local from cloud git services
 #
 # Author: Stanislav V. Emets <emetssv@mail.ru>
 #
@@ -92,16 +92,16 @@ for repo_url in $all_repos; do
                 echo "Repo alredy cloned, pull changes"
                 pushd "$backup_dest/$repo_name" > /dev/null
                 git pull
-                popd > /dev/null
         else
                 echo "Cloning repo $repo_url"
                 pushd "$backup_dest" > /dev/null
                 git clone $repo_url
-                popd > /dev/null
         fi
+        popd > /dev/null
     fi
 done
 
+exit
 tar -czvf $backup_file $backup_dest
 
 if [ $delete_dest -gt 0 ]; then
