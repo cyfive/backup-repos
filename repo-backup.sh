@@ -89,7 +89,7 @@ for repo_url in $all_repos; do
         repo_name=$(basename $repo_url)
         repo_name=${repo_name/.git/}
         if [ -d "$backup_dest/$repo_name" ]; then
-                echo "Repo alredy cloned, pull changes"
+                echo "Repo already cloned, pull changes"
                 pushd "$backup_dest/$repo_name" > /dev/null
                 git pull
         else
@@ -101,7 +101,6 @@ for repo_url in $all_repos; do
     fi
 done
 
-exit
 tar -czvf $backup_file $backup_dest
 
 if [ $delete_dest -gt 0 ]; then

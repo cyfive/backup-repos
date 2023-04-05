@@ -28,7 +28,7 @@ DST_REPO=""
 function usage() {
 	echo
 	echo "Usage:"
-	echo "	$0 -l|--list repo.list [-r | --rm]"
+	echo "	$0 -l|--list repo.list [-s|--src] <source remote repo> [-d|--dst] <destination remote repo>"
 	echo
 	echo "	-l | --list file containing repo list for mirroring"
 	echo "	-c | --cache cache path, the default path .cache"
@@ -41,7 +41,7 @@ function mirror_repo() {
 	local src_repo=$1
 	local dst_repo=$2
 
-	src_repo_path=$(basename ${src_repo})
+	local src_repo_path=$(basename ${src_repo})
 	if [[ "${src_repo_path}" != *".git" ]]; then
 		src_repo_path="${src_repo_path}.git"
 	fi
